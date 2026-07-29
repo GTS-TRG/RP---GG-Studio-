@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #EEF2F6;
+    color: #1A2332;
+    font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  }
+
+  /* Scrollbar nhẹ cho theme sáng */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #C5D0DC #EEF2F6;
+  }
+}

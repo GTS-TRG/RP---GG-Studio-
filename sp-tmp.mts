@@ -1,0 +1,14 @@
+import fs from 'fs';
+import { parseExcelWorkbook } from './src/utils/excelParser';
+import { DEFAULT_CONFIG } from './src/utils/panelReviewer';
+const buf = fs.readFileSync(process.argv[2]);
+const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+const p = parseExcelWorkbook(ab, DEFAULT_CONFIG);
+console.log('specSheetName =', p.specSheetName);
+console.log('cableSpecs =', p.specs.length, JSON.stringify(p.specs.slice(0, 3)));
+console.log('outerDias  =', p.outerDias.length, JSON.stringify(p.outerDias.slice(0, 2)));
+console.log('conduits   =', p.conduits.length, JSON.stringify(p.conduits.slice(0, 3)));
+console.log('cbRatings  =', p.cbRatings.length, JSON.stringify(p.cbRatings.slice(0, 4)));
+console.log('cbTypes    =', p.cbTypes.length, JSON.stringify(p.cbTypes));
+console.log('poles      =', p.poleOptions.length, JSON.stringify(p.poleOptions));
+console.log('isc        =', p.iscOptions.length, JSON.stringify(p.iscOptions));

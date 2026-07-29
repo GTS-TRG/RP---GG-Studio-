@@ -1,0 +1,6 @@
+{
+  "name": "Electrical Panel Reviewer",
+  "description": "Ứng dụng web tự động đọc và thẩm tra bảng tính tải điện Excel (Panel Schedule) theo tiêu chuẩn kỹ thuật điện.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
