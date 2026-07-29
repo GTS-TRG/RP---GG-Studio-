@@ -6,7 +6,10 @@ import {
   CableSheathType,
   CableSpecRow,
   ConduitSpec,
+  PanelFooterData,
+  PanelIncoming,
   PanelSheetData,
+  PanelTotalRow,
   ProjectConfig,
   RawCircuitRow,
 } from '../types';
@@ -28,7 +31,7 @@ import {
   uniqueSpecList,
 } from './cbOptionLists';
 import { extractNumber, extractNumberFromCell, extractTextFromCell, isExcelErrorCell, getExcelErrorLabel, isSummaryRow, normalizePoleValue, cleanCableSectionOnly } from './helpers';
-import { detectPanelLayout } from './panelLayout';
+import { detectPanelLayout, normHeader, type PanelCols } from './panelLayout';
 import type { LookupTables } from './lookupTables';
 
 export interface ParsedWorkbook {
@@ -838,6 +841,146 @@ function detectIsMsbPanel(sheetName: string): boolean {
   return nameUp.includes('MSB');
 }
 
+/** Gộp toàn bộ chữ trên một dòng thành chuỗi đã bỏ dấu — dùng dò nhãn khối tổng kết */
+function rowLabelText(ws: XLSX.WorkSheet, r: number, maxCol: number): string {
+  const parts: string[] = [];
+  for (let c = 0; c <= maxCol; c++) {
+    const cell = ws[XLSX.utils.encode_cell({ r, c })];
+    if (!cell || cell.v == null || cell.v === '') continue;
+    if (typeof cell.v === 'number') continue; // chỉ lấy nhãn chữ
+    parts.push(normHeader(cell.v));
+  }
+  return parts.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Đọc khối tổng kết nằm dưới dòng mạch cuối: tổng công suất, Ks, dòng tính toán, lộ vào.
+ * Chỉ phục vụ hiển thị — không dùng cho thẩm tra nên sai lệch form sẽ bỏ qua im lặng.
+ */
+function parsePanelFooter(
+  ws: XLSX.WorkSheet,
+  cols: PanelCols,
+  fromRow: number,
+  lastRow: number,
+  maxCol: number
+): PanelFooterData | undefined {
+  const footer: PanelFooterData = {};
+  let found = false;
+
+  const numAt = (r: number, c: number | undefined): number | undefined => {
+    if (c === undefined) return undefined;
+    const cell = ws[XLSX.utils.encode_cell({ r, c })];
+    if (!cell || cell.v == null || isExcelErrorCell(cell)) return undefined;
+    if (typeof cell.v === 'number') return cell.v;
+    // Ô chữ ("kVA", "-", ...) không phải số liệu: extractNumber trả 0
+    const n = extractNumberFromCell(cell);
+    return n !== 0 ? n : undefined;
+  };
+
+  /** Số đầu tiên trên dòng — dự phòng khi không dò được cột "Full" */
+  const firstNumOnRow = (r: number): number | undefined => {
+    for (let c = 0; c <= maxCol; c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r, c })];
+      if (!cell || cell.v == null || isExcelErrorCell(cell)) continue;
+      if (typeof cell.v === 'number') return cell.v;
+    }
+    return undefined;
+  };
+
+  /**
+   * Trả undefined nếu dòng tổng không có số nào — tránh dựng khối rỗng.
+   * KHÔNG suy ra "Full" từ số đầu dòng: form không có cột Full thì số đầu tiên
+   * chính là công suất pha R, hiển thị thành tổng sẽ sai.
+   */
+  const totalsAt = (r: number): PanelTotalRow | undefined => {
+    const t: PanelTotalRow = {
+      full: numAt(r, cols.fullLoad),
+      r: numAt(r, cols.rLoad),
+      y: numAt(r, cols.yLoad),
+      b: numAt(r, cols.bLoad),
+    };
+    return t.full === undefined && t.r === undefined && t.y === undefined && t.b === undefined
+      ? undefined
+      : t;
+  };
+
+  /** Dòng dữ liệu lộ vào: có loại CB hoặc dòng định mức */
+  const incomingAt = (r: number): PanelIncoming | undefined => {
+    const type = extractTextFromCell(
+      cols.cbType === undefined ? undefined : ws[XLSX.utils.encode_cell({ r, c: cols.cbType })]
+    ).toUpperCase();
+    const inText = extractTextFromCell(
+      cols.cbText === undefined ? undefined : ws[XLSX.utils.encode_cell({ r, c: cols.cbText })]
+    );
+    // Dòng "THIẾT BỊ BẢO VỆ TỔNG / MAIN CIRCUIT BREAKER" là tiêu đề, không phải số liệu:
+    // đòi hỏi đúng tên loại CB hoặc có dòng định mức thì mới nhận.
+    const looksLikeCb = /^(MCB|MCCB|ACB|RCCB|RCBO|RCD|ELCB|MPCB|NFB|FUSE)\b/.test(type);
+    if (!looksLikeCb && extractNumber(inText) <= 0) return undefined;
+
+    const txt = (c: number | undefined) =>
+      extractTextFromCell(c === undefined ? undefined : ws[XLSX.utils.encode_cell({ r, c })])
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    // Nguồn cấp nằm ở vùng mô tả; form khác nhau nên quét cả dòng tìm "FROM ..."
+    let source = txt(cols.description) || txt(cols.lineName);
+    if (!/FROM/i.test(source)) {
+      for (let c = 0; c <= maxCol; c++) {
+        const cell = ws[XLSX.utils.encode_cell({ r, c })];
+        if (!cell || typeof cell.v !== 'string') continue;
+        if (/\bFROM\b/i.test(cell.v)) {
+          source = cell.v.replace(/\s+/g, ' ').trim();
+          break;
+        }
+      }
+    }
+
+    return {
+      source,
+      cbType: type,
+      poleVal: txt(cols.poleVal),
+      cbText: inText,
+      cbIsc: txt(cols.cbIsc),
+      phaseCableText: txt(cols.phaseCableText),
+      peCableText: txt(cols.peCableText),
+      installMethod: txt(cols.installMethod),
+    };
+  };
+
+  for (let r = fromRow; r <= lastRow; r++) {
+    const label = rowLabelText(ws, r, maxCol);
+    if (!label) continue;
+
+    // Thứ tự QUAN TRỌNG: nhãn hẹp trước nhãn rộng.
+    // "TONG CONG SUAT TINH TOAN" cũng chứa "TONG CONG SUAT" của dòng định mức.
+    if (/TONG CONG SUAT TINH TOAN|TOTAL CAL(CULATED)? POWER/.test(label)) {
+      footer.calcPower = totalsAt(r);
+      if (footer.calcPower) found = true;
+    } else if (/DONG DIEN TINH TOAN|TOTAL CAL(CULATED)? CURRENT/.test(label)) {
+      footer.calcCurrent = numAt(r, cols.fullLoad) ?? firstNumOnRow(r);
+      if (footer.calcCurrent !== undefined) found = true;
+    } else if (/HE SO DONG THOI|DIVERSITY FACTOR/.test(label)) {
+      footer.diversityFactor = numAt(r, cols.fullLoad) ?? firstNumOnRow(r);
+      if (footer.diversityFactor !== undefined) found = true;
+    } else if (/TONG CONG SUAT DINH MUC|TOTAL RATE(D)? POWER/.test(label)) {
+      footer.ratedPower = totalsAt(r);
+      if (footer.ratedPower) found = true;
+    } else if (/INCOMING|LO VAO/.test(label) && !footer.incoming) {
+      // Nhãn "LỘ VÀO / INCOMING" là tiêu đề; số liệu nằm ở dòng ngay dưới
+      for (let k = r; k <= Math.min(lastRow, r + 3); k++) {
+        const inc = incomingAt(k);
+        if (inc) {
+          footer.incoming = inc;
+          found = true;
+          break;
+        }
+      }
+    }
+  }
+
+  return found ? footer : undefined;
+}
+
 /**
  * Parses an individual Panel Schedule worksheet
  */
@@ -902,6 +1045,7 @@ function parsePanelSheet(sheetName: string, ws: XLSX.WorkSheet, config: ProjectC
 
     const cellName = cellAt(r, cols.lineName);
     const cellDesc = cellAt(r, cols.description);
+    const cellFull = cellAt(r, cols.fullLoad);
     const cellR = cellAt(r, cols.rLoad);
     const cellY = cellAt(r, cols.yLoad);
     const cellB = cellAt(r, cols.bLoad);
@@ -917,6 +1061,7 @@ function parsePanelSheet(sheetName: string, ws: XLSX.WorkSheet, config: ProjectC
 
     const lineName = cellName && cellName.v != null ? String(cellName.v).trim() : '';
     const description = extractTextFromCell(cellDesc);
+    const fullLoad = extractNumberFromCell(cellFull);
     const rLoad = extractNumberFromCell(cellR);
     const yLoad = extractNumberFromCell(cellY);
     const bLoad = extractNumberFromCell(cellB);
@@ -962,7 +1107,7 @@ function parsePanelSheet(sheetName: string, ws: XLSX.WorkSheet, config: ProjectC
     // Sheet khong do duoc bo cuc (vd sheet tong hop/CSDL) rat de bi doc nham thanh mach.
     // Voi cac sheet do, doi hoi dong phai co CB that su: dung loai CB hoac co dong dinh muc.
     if (!layout.detected) {
-      const looksLikeCb = /^(MCB|MCCB|ACB|RCCB|RCBO|RCD|ELCB|MPCB|FUSE)/.test(cbType);
+      const looksLikeCb = /^(MCB|MCCB|ACB|RCCB|RCBO|RCD|ELCB|MPCB|FUSE)\b/.test(cbType);
       if (!looksLikeCb && cbAmp <= 0) {
         continue;
       }
@@ -982,6 +1127,7 @@ function parsePanelSheet(sheetName: string, ws: XLSX.WorkSheet, config: ProjectC
       rowIndex: r + 1, // 1-indexed for row presentation
       lineName,
       description,
+      fullLoad,
       rLoad,
       yLoad,
       bLoad,
@@ -1005,12 +1151,22 @@ function parsePanelSheet(sheetName: string, ws: XLSX.WorkSheet, config: ProjectC
     });
   }
 
+  // Khối tổng kết + lộ vào nằm ngay sau dòng mạch cuối cùng
+  const footer = parsePanelFooter(
+    ws,
+    cols,
+    endRowIndex + 1,
+    range.e.r,
+    Math.min(range.e.c, 40)
+  );
+
   return {
     sheetName,
     isMSB,
     startRow: startRowIdx + 1,
     endRow: endRowIndex + 1,
     circuits,
+    footer,
     cols,
     layoutDetected: layout.detected,
   };

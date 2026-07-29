@@ -104,9 +104,9 @@ export function createSampleWorkbook(): Uint8Array {
       ['HẠNG MỤC / ITEM:', 'BẢNG TÍNH TẢI VÀ THIẾT BỊ BẢO VỆ TỦ ĐIỆN'],
       ['TÊN TỦ ĐIỆN / PANEL:', panelTitle],
       [''],
-      ['MÃ MẠCH', 'MÔ TẢ PHỤ TẢI', '', 'CÔNG SUẤT VÀ DÒNG ĐIỆN TÍNH TOÁN', '', '', '', 'THIẾT BỊ BẢO VỆ (CB)', '', '', '', 'DÂY DẪN ĐIỆN (CABLE)', ''],
-      ['Line Name', 'Circuit Description', '', 'Phase R (kW)', 'Phase Y (kW)', 'Phase B (kW)', 'I calc (A)', 'Type', 'Pole', 'Rating (In)', 'Isc (kA)', 'Phase Cable Spec', 'PE Cable Spec'],
-      ['(A)', '(B)', '(C)', '(D)', '(E)', '(F)', '(G)', '(H)', '(I)', '(J)', '(K)', '(L)', '(M)'],
+      ['MÃ MẠCH', 'MÔ TẢ PHỤ TẢI', '', 'CÔNG SUẤT VÀ DÒNG ĐIỆN TÍNH TOÁN', '', '', '', '', 'THIẾT BỊ BẢO VỆ (CB)', '', '', '', 'DÂY DẪN ĐIỆN (CABLE)', '', 'GIẢI PHÁP LẮP ĐẶT'],
+      ['Line Name', 'Circuit Description', '', 'Full (kVA)', 'Phase R (kW)', 'Phase Y (kW)', 'Phase B (kW)', 'I calc (A)', 'Type', 'Pole', 'Rating (In)', 'Isc (kA)', 'Phase Cable Spec', 'PE Cable (Earthing Conductor E)', 'Installation Method'],
+      ['(A)', '(B)', '(C)', '(D)', '(E)', '(F)', '(G)', '(H)', '(I)', '(J)', '(K)', '(L)', '(M)', '(N)', '(O)'],
       [''],
       [''],
       [''],
@@ -118,13 +118,20 @@ export function createSampleWorkbook(): Uint8Array {
   // 2. MSB SHEET (Tủ tổng MSB-01)
   const msbRows = createPanelSheetRows('TỦ ĐIỆN TỔNG MSB-01');
   msbRows.push(
-    ['CP-01', 'CẤP NGUỒN CHO TỦ DB-L01', '', 5.2, 5.2, 5.2, 25.5, 'MCCB', '3P', '40A', '65kA', 'Cu/XLPE/PVC 4x1C-10mm2', 'Cu/PVC 1x10mm2', 'IN CABLE TRAY'],
-    ['L1', 'CHIẾU SÁNG SẢNH CHÍNH TẦNG 1', '', 1.8, 0, 0, 8.2, 'MCB', '1P', '16A', '10kA', 'Cu/XLPE/PVC 2x2.5mm2', 'Cu/PVC 1x2.5mm2', 'IN 02 CONDUIT PVC D16'], // Error: MSB MCB Isc 10kA < 65kA min required for MSB!
-    ['S1', 'Ổ CẮM TẦNG TRỄN', '', 2.5, 0, 0, 11.4, 'MCB', '1P', '20A', '65kA', 'Cu/XLPE/PVC 2x4mm2', 'Cu/PVC 1x4mm2', 'IN 02 CONDUIT PVC D20'], // Error: Socket S must use 1P+N!
-    ['P1', 'CẤP NGUỒN MÁY BƠM NƯỚC CẤP', '', 6.5, 6.5, 6.5, 32.0, 'MCCB', '3P', '50A', '10kA', 'Cu/XLPE/PVC 4x1C-10mm2', 'Cu/PVC 1x10mm2', 'IN CONDUIT PVC D25'], // Error: MSB MCCB Isc 10kA < 65kA & MCB Rating < 32A checks!
-    ['P2 (PCCC)', 'CẤP NGUỒN BƠM CHỮA CHÁY (S/D)', '', 22.0, 22.0, 22.0, 105.0, 'MCCB', '3P', '160A', '65kA', 'Cu/XLPE/PVC 4x1C-35mm2', 'Cu/PVC 1x16mm2', 'IN CABLE TRAY'], // Fire pump (1.5 safety factor)
-    ['SP-01', 'DỰ PHÒNG CHỜ MỞ RỘNG (SPARE)', '', 0, 0, 0, 0, 'MCCB', '3P', '63A', '65kA', 'Cu/XLPE/PVC 4x1C-16mm2', 'Cu/PVC 1x16mm2', 'IN CABLE TRAY'],
-    ['CÔNG SUẤT TÍNH TOÁN (TOTAL CONNECTED LOAD):', '', '', '', '', '', '', '', '', '', '', '', '', '']
+    ['CP-01', 'CẤP NGUỒN CHO TỦ DB-L01', '', 15.6, 5.2, 5.2, 5.2, 25.5, 'MCCB', '3P', '40A', '65kA', 'Cu/XLPE/PVC 4x1C-10mm2', 'Cu/PVC 1x10mm2', 'IN CABLE TRAY'],
+    ['L1', 'CHIẾU SÁNG SẢNH CHÍNH TẦNG 1', '', 1.8, 1.8, 0, 0, 8.2, 'MCB', '1P', '16A', '10kA', 'Cu/XLPE/PVC 2x2.5mm2', 'Cu/PVC 1x2.5mm2', 'IN 02 CONDUIT PVC D16'], // Error: MSB MCB Isc 10kA < 65kA min required for MSB!
+    ['S1', 'Ổ CẮM TẦNG TRỄN', '', 2.5, 2.5, 0, 0, 11.4, 'MCB', '1P', '20A', '65kA', 'Cu/XLPE/PVC 2x4mm2', 'Cu/PVC 1x4mm2', 'IN 02 CONDUIT PVC D20'], // Error: Socket S must use 1P+N!
+    ['P1', 'CẤP NGUỒN MÁY BƠM NƯỚC CẤP', '', 19.5, 6.5, 6.5, 6.5, 32.0, 'MCCB', '3P', '50A', '10kA', 'Cu/XLPE/PVC 4x1C-10mm2', 'Cu/PVC 1x10mm2', 'IN CONDUIT PVC D25'], // Error: MSB MCCB Isc 10kA < 65kA & MCB Rating < 32A checks!
+    ['P2 (PCCC)', 'CẤP NGUỒN BƠM CHỮA CHÁY (S/D)', '', 66.0, 22.0, 22.0, 22.0, 105.0, 'MCCB', '3P', '160A', '65kA', 'Cu/XLPE/PVC 4x1C-35mm2', 'Cu/PVC 1x16mm2', 'IN CABLE TRAY'], // Fire pump (1.5 safety factor)
+    ['SP-01', 'DỰ PHÒNG CHỜ MỞ RỘNG (SPARE)', '', 0, 0, 0, 0, 0, 'MCCB', '3P', '63A', '65kA', 'Cu/XLPE/PVC 4x1C-16mm2', 'Cu/PVC 1x16mm2', 'IN CABLE TRAY'],
+    ['CÔNG SUẤT TÍNH TOÁN (TOTAL CONNECTED LOAD):', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+    // Khối tổng kết + lộ vào (chỉ hiển thị, không tham gia thẩm tra)
+    ['TỔNG CÔNG SUẤT ĐỊNH MỨC (TOTAL RATE POWER)', '', '', 105.4, 38.0, 33.7, 33.7, '', '', '', '', '', '', '', ''],
+    ['HỆ SỐ ĐỒNG THỜI (DIVERSITY FACTOR Ks)', '', '', 0.8, '', '', '', '', '', '', '', '', '', '', ''],
+    ['TỔNG CÔNG SUẤT TÍNH TOÁN (TOTAL CALCULATED POWER)', '', '', 84.32, 30.4, 26.96, 26.96, '', '', '', '', '', '', '', ''],
+    ['DÒNG ĐIỆN TÍNH TOÁN (TOTAL CALCULATED CURRENT)', '', '', 158.4, '', '', '', '', '', '', '', '', '', '', ''],
+    ['LỘ VÀO (INCOMING)', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+    ['', 'FROM LV-TRANSFORMER', '', '', '', '', '', '', 'ACB', '4P', '400A', '65kA', 'Cu/XLPE/PVC 4x1C-240mm2', 'Cu/PVC 1x120mm2', 'IN CABLE TRAY']
   );
 
   const msbWs = XLSX.utils.aoa_to_sheet(msbRows);
@@ -133,13 +140,20 @@ export function createSampleWorkbook(): Uint8Array {
   // 3. DB-L01 SHEET (Tủ tầng DB-L01)
   const dblRows = createPanelSheetRows('TỦ ĐIỆN PHÂN PHỐI CHIẾU SÁNG DB-L01');
   dblRows.push(
-    ['L1', 'CHIẾU SÁNG HÀNH LANG TẦNG 1', '', 1.2, 0, 0, 5.5, 'MCB', '1P', '16A', '10kA', 'Cu/XLPE/PVC 2x2.5mm2', 'Cu/PVC 1x2.5mm2', 'IN 02 CONDUIT PVC D16'],
-    ['L2', 'CHIẾU SÁNG PHÒNG HỌP TẦNG 1', '', 1.5, 0, 0, 6.8, 'MCB', '1P', '16A', '10kA', 'Cu/XLPE/PVC 2x2.5mm2', 'Cu/PVC 1x2.5mm2', 'IN 02 CONDUIT PVC D16'],
-    ['S1', 'Ổ CẮM LÀM VIỆC KHU KHÁCH', '', 2.8, 0, 0, 12.7, 'MCB', '1P+N', '20A', '10kA', 'Cu/XLPE/PVC 2x4mm2', 'Cu/PVC 1x4mm2', 'IN 02 CONDUIT PVC D20'],
-    ['S2', 'Ổ CẮM PHÒNG TEABREAK', '', 3.5, 0, 0, 15.9, 'MCB', '1P+N', '32A', '10kA', 'Cu/XLPE/PVC 1x2.5mm2', 'Cu/PVC 1x2.5mm2', 'IN 02 CONDUIT PVC D20'], // Error: Oversized CB (32A vs 20A req) & Wrong phase cable (2.5mm2 < 6mm2 required for 32A)!
-    ['P1', 'CẤP NGUỒN CHO QUẠT TẠO ÁP HÀNH LANG (PCCC)', '', 3.0, 3.0, 3.0, 14.8, 'MCB', '3P', '32A', '10kA', 'Cu/XLPE/PVC 4C-6mm2', 'Cu/PVC 1x6mm2', 'IN CONDUIT PVC D25'],
-    ['SP1', 'DỰ PHÒNG TỦ DB-L01', '', 0, 0, 0, 0, 'MCB', '', '', '', '', '', ''], // Warning: Spare missing CB parameters
-    ['DÒNG ĐIỆN TÍNH TOÁN TỔNG (CURRENT A)', '', '', '', '', '', '', '', '', '', '', '', '', '']
+    ['L1', 'CHIẾU SÁNG HÀNH LANG TẦNG 1', '', 1.2, 1.2, 0, 0, 5.5, 'MCB', '1P', '16A', '10kA', 'Cu/XLPE/PVC 2x2.5mm2', 'Cu/PVC 1x2.5mm2', 'IN 02 CONDUIT PVC D16'],
+    ['L2', 'CHIẾU SÁNG PHÒNG HỌP TẦNG 1', '', 1.5, 1.5, 0, 0, 6.8, 'MCB', '1P', '16A', '10kA', 'Cu/XLPE/PVC 2x2.5mm2', 'Cu/PVC 1x2.5mm2', 'IN 02 CONDUIT PVC D16'],
+    ['S1', 'Ổ CẮM LÀM VIỆC KHU KHÁCH', '', 2.8, 2.8, 0, 0, 12.7, 'MCB', '1P+N', '20A', '10kA', 'Cu/XLPE/PVC 2x4mm2', 'Cu/PVC 1x4mm2', 'IN 02 CONDUIT PVC D20'],
+    ['S2', 'Ổ CẮM PHÒNG TEABREAK', '', 3.5, 3.5, 0, 0, 15.9, 'MCB', '1P+N', '32A', '10kA', 'Cu/XLPE/PVC 1x2.5mm2', 'Cu/PVC 1x2.5mm2', 'IN 02 CONDUIT PVC D20'], // Error: Oversized CB (32A vs 20A req) & Wrong phase cable (2.5mm2 < 6mm2 required for 32A)!
+    ['P1', 'CẤP NGUỒN CHO QUẠT TẠO ÁP HÀNH LANG (PCCC)', '', 9.0, 3.0, 3.0, 3.0, 14.8, 'MCB', '3P', '32A', '10kA', 'Cu/XLPE/PVC 4C-6mm2', 'Cu/PVC 1x6mm2', 'IN CONDUIT PVC D25'],
+    ['SP1', 'DỰ PHÒNG TỦ DB-L01', '', 0, 0, 0, 0, 0, 'MCB', '', '', '', '', '', ''], // Warning: Spare missing CB parameters
+    ['DÒNG ĐIỆN TÍNH TOÁN TỔNG (CURRENT A)', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+    // Khối tổng kết + lộ vào (chỉ hiển thị, không tham gia thẩm tra)
+    ['TỔNG CÔNG SUẤT ĐỊNH MỨC (TOTAL RATE POWER)', '', '', 18.0, 12.0, 3.0, 3.0, '', '', '', '', '', '', '', ''],
+    ['HỆ SỐ ĐỒNG THỜI (DIVERSITY FACTOR Ks)', '', '', 0.8, '', '', '', '', '', '', '', '', '', '', ''],
+    ['TỔNG CÔNG SUẤT TÍNH TOÁN (TOTAL CALCULATED POWER)', '', '', 14.4, 9.6, 2.4, 2.4, '', '', '', '', '', '', '', ''],
+    ['DÒNG ĐIỆN TÍNH TOÁN (TOTAL CALCULATED CURRENT)', '', '', 66.5, '', '', '', '', '', '', '', '', '', '', ''],
+    ['LỘ VÀO (INCOMING)', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+    ['', 'FROM MSB-01', '', '', '', '', '', '', 'MCCB', '3P', '100A', '25kA', 'Cu/XLPE/PVC 4x1C-35mm2', 'Cu/PVC 1x16mm2', 'IN CABLE TRAY']
   );
 
   const dblWs = XLSX.utils.aoa_to_sheet(dblRows);

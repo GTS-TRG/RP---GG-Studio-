@@ -63,6 +63,8 @@ export interface RawCircuitRow {
   rowIndex: number;
   lineName: string;       // Col A
   description: string;    // Col B
+  /** Cột "Full" — tổng công suất cả 3 pha (kVA); form không có cột này thì = 0 */
+  fullLoad: number;
   rLoad: number;          // Col D
   yLoad: number;          // Col E
   bLoad: number;          // Col F
@@ -86,12 +88,52 @@ export interface RawCircuitRow {
   excelErrorFields?: string[]; // e.g. ['G','J','L']
 }
 
+/** Một dòng tổng công suất ở khối chân sheet (định mức / tính toán) */
+export interface PanelTotalRow {
+  /** Cột "Full" — tổng trên cả 3 pha (kVA) */
+  full?: number;
+  r?: number;
+  y?: number;
+  b?: number;
+}
+
+/** Lộ vào (Incoming) — CB tổng + cáp nguồn cấp cho tủ */
+export interface PanelIncoming {
+  /** Nguồn cấp, vd "FROM LV-MSB" */
+  source: string;
+  cbType: string;
+  poleVal: string;
+  cbText: string;
+  cbIsc: string;
+  phaseCableText: string;
+  peCableText: string;
+  installMethod: string;
+}
+
+/**
+ * Khối tổng kết cuối sheet tủ điện — nằm DƯỚI dòng mạch cuối cùng.
+ * Chỉ đọc để hiển thị, không tham gia thẩm tra.
+ */
+export interface PanelFooterData {
+  /** Tổng công suất định mức (kVA) */
+  ratedPower?: PanelTotalRow;
+  /** Hệ số đồng thời Ks */
+  diversityFactor?: number;
+  /** Tổng công suất tính toán (kVA) */
+  calcPower?: PanelTotalRow;
+  /** Dòng điện tính toán tổng (A) */
+  calcCurrent?: number;
+  incoming?: PanelIncoming;
+}
+
 export interface PanelSheetData {
   sheetName: string;
   isMSB: boolean;
   startRow: number;
   endRow: number;
   circuits: RawCircuitRow[];
+  /** Khối tổng kết + lộ vào; thiếu = sheet không có khối này */
+  footer?: PanelFooterData;
   /** Vi tri cot thuc te da do duoc tren sheet nay (0-based) */
   cols: PanelCols;
   /** true = do duoc theo tieu de; false = dung bo cuc mac dinh */

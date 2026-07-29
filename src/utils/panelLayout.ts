@@ -8,6 +8,8 @@ import * as XLSX from 'xlsx';
 export interface PanelCols {
   lineName?: number;
   description?: number;
+  /** Cột "Full / Rate Power" (tổng công suất) — form cũ không có */
+  fullLoad?: number;
   rLoad?: number;
   yLoad?: number;
   bLoad?: number;
@@ -201,7 +203,7 @@ export function detectPanelLayout(ws: XLSX.WorkSheet, fallbackStartRow: number):
     // B1: giữ chỗ cột công suất theo pha (R/Y/B) TRƯỚC, để các luật khác
     // không chiếm nhầm — ví dụ "Phase R (kW)" có chứa chữ PHASE.
     const anchorCol = bandTexts.findIndex(
-      (t) => t && (/FULL/.test(t) || /RATE POWER/.test(t))
+      (t) => t && (/\bFULL\b/.test(t) || /RATE POWER/.test(t))
     );
     const reserved = new Set<number>();
     const winStart = anchorCol >= 0 ? anchorCol : 0;
@@ -215,7 +217,10 @@ export function detectPanelLayout(ws: XLSX.WorkSheet, fallbackStartRow: number):
         matched++;
       }
     }
-    if (anchorCol >= 0) reserved.add(anchorCol);
+    if (anchorCol >= 0) {
+      reserved.add(anchorCol);
+      cols.fullLoad = anchorCol;
+    }
 
     // B2: các trường còn lại dò theo tiêu đề gộp
     for (let c = 0; c <= maxCol; c++) {

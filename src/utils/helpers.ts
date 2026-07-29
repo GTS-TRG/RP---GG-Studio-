@@ -164,7 +164,7 @@ export function isSummaryRow(s: string): boolean {
   const exact = ['sum', 'total', 'tong', 'tong cong'];
   if (exact.includes(t)) return true;
 
-  return /^total\s+(rate|cal|calculated|connected)/.test(t);
+  return /^total\s+(rate|cal|calculated|connected)\b/.test(t);
 }
 
 export function isFireCircuit(desc: string, lineName: string): boolean {
