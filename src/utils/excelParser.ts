@@ -854,6 +854,37 @@ function rowLabelText(ws: XLSX.WorkSheet, r: number, maxCol: number): string {
 }
 
 /**
+ * Dò "Nguồn cấp từ / Supply from" ở khối tiêu đề đầu sheet (vài dòng đầu) —
+ * dự phòng cho form không ghi "FROM ..." ngay trong khối lộ vào (vd. LAV3),
+ * giá trị nằm ở đầu sheet dạng "Nguồn cấp từ/ Supply from: <nguồn>" hoặc
+ * nhãn và giá trị tách 2 ô cạnh nhau trên cùng dòng.
+ */
+function findHeaderSupplySource(ws: XLSX.WorkSheet, maxRow: number, maxCol: number): string | undefined {
+  const searchRows = Math.min(maxRow, 9);
+  for (let r = 0; r <= searchRows; r++) {
+    for (let c = 0; c <= maxCol; c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r, c })];
+      if (!cell || typeof cell.v !== 'string') continue;
+      if (!/NGUON CAP TU|SUPPLY FROM/.test(normHeader(cell.v))) continue;
+
+      // Giá trị có thể nằm ngay trong ô, sau dấu ':' cuối cùng (nhãn VN/EN có thể chứa ':' riêng)
+      const afterColon = cell.v.split(':').slice(1).join(':').trim();
+      if (afterColon) return afterColon;
+
+      // Hoặc nằm ở ô kế bên cùng dòng (nhãn/giá trị tách cột)
+      for (let c2 = c + 1; c2 <= maxCol; c2++) {
+        const next = ws[XLSX.utils.encode_cell({ r, c: c2 })];
+        if (next && next.v != null && String(next.v).trim()) {
+          return String(next.v).trim();
+        }
+      }
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+/**
  * Đọc khối tổng kết nằm dưới dòng mạch cuối: tổng công suất, Ks, dòng tính toán, lộ vào.
  * Chỉ phục vụ hiển thị — không dùng cho thẩm tra nên sai lệch form sẽ bỏ qua im lặng.
  */
@@ -924,6 +955,10 @@ function parsePanelFooter(
 
     // Nguồn cấp nằm ở vùng mô tả; form khác nhau nên quét cả dòng tìm "FROM ..."
     let source = txt(cols.description) || txt(cols.lineName);
+    // Form không ghi "FROM ..." ngay dòng lộ vào: cột mô tả/tên mạch ở đây lại
+    // trùng vào chính ô nhãn của dòng tổng kết (vd. "DÒNG ĐIỆN TÍNH TOÁN/ CURRENT (A)") —
+    // không phải nguồn cấp thật, phải bỏ để không hiển thị nhầm.
+    if (source && isSummaryRow(source)) source = '';
     if (!/FROM/i.test(source)) {
       for (let c = 0; c <= maxCol; c++) {
         const cell = ws[XLSX.utils.encode_cell({ r, c })];
@@ -933,6 +968,10 @@ function parsePanelFooter(
           break;
         }
       }
+    }
+    // Dự phòng cuối: đọc "Nguồn cấp từ/ Supply from" ở khối tiêu đề đầu sheet
+    if (!source) {
+      source = findHeaderSupplySource(ws, r, maxCol) || '';
     }
 
     return {
@@ -952,20 +991,36 @@ function parsePanelFooter(
     if (!label) continue;
 
     // Thứ tự QUAN TRỌNG: nhãn hẹp trước nhãn rộng.
-    // "TONG CONG SUAT TINH TOAN" cũng chứa "TONG CONG SUAT" của dòng định mức.
-    if (/TONG CONG SUAT TINH TOAN|TOTAL CAL(CULATED)? POWER/.test(label)) {
-      footer.calcPower = totalsAt(r);
-      if (footer.calcPower) found = true;
+    // "CONG SUAT TINH TOAN" cũng chứa "CONG SUAT" của dòng định mức.
+    // Chỉ gán khi dòng thật sự có số: nhiều form có dòng tiêu đề mang cùng nhãn
+    // nhưng bỏ trống số liệu, gán vô điều kiện sẽ xoá mất giá trị đọc được sau đó.
+    if (/CONG SUAT TINH TOAN|TOTAL CAL(CULATED)? POWER|POWER CALCULATION/.test(label)) {
+      const t = totalsAt(r);
+      if (t) {
+        footer.calcPower = t;
+        found = true;
+      }
     } else if (/DONG DIEN TINH TOAN|TOTAL CAL(CULATED)? CURRENT/.test(label)) {
       footer.calcCurrent = numAt(r, cols.fullLoad) ?? firstNumOnRow(r);
       if (footer.calcCurrent !== undefined) found = true;
     } else if (/HE SO DONG THOI|DIVERSITY FACTOR/.test(label)) {
       footer.diversityFactor = numAt(r, cols.fullLoad) ?? firstNumOnRow(r);
       if (footer.diversityFactor !== undefined) found = true;
-    } else if (/TONG CONG SUAT DINH MUC|TOTAL RATE(D)? POWER/.test(label)) {
-      footer.ratedPower = totalsAt(r);
-      if (footer.ratedPower) found = true;
-    } else if (/INCOMING|LO VAO/.test(label) && !footer.incoming) {
+    } else if (
+      /TONG CONG SUAT DINH MUC|TOTAL RATE(D)? POWER|CONG SUAT KET NOI|TOTAL CONNECTED LOAD/.test(
+        label
+      )
+    ) {
+      const t = totalsAt(r);
+      if (t) {
+        footer.ratedPower = t;
+        found = true;
+      }
+    }
+
+    // Xét riêng, không nằm trong chuỗi else-if trên: có form ghi nhãn "INCOMING CABLE"
+    // chung dòng với nhãn tổng công suất, nếu để trong chuỗi thì nhánh trên chiếm mất.
+    if (!footer.incoming && /INCOMING|LO VAO/.test(label)) {
       // Nhãn "LỘ VÀO / INCOMING" là tiêu đề; số liệu nằm ở dòng ngay dưới
       for (let k = r; k <= Math.min(lastRow, r + 3); k++) {
         const inc = incomingAt(k);

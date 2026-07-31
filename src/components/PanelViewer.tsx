@@ -39,10 +39,10 @@ interface PanelViewerProps {
 }
 
 const inputCls =
-  'w-full min-w-[4.5rem] bg-[#F0F4F8] border border-[#C5D0DC] text-[#1A2332] rounded px-1.5 py-1 text-[14px] focus:outline-none focus:border-[#1B7A45]';
-/** Select Loại CB — rộng hơn để hiện đủ RCBO(30mA) */
+  'w-full min-w-[4.5rem] bg-[#F0F4F8] border border-[#C5D0DC] text-[#1A2332] rounded px-1.5 py-1 text-[12px] focus:outline-none focus:border-[#1B7A45]';
+/** Select Loại CB — đủ hiện RCBO(30mA), không dư khoảng trống */
 const cbTypeSelectCls =
-  'w-full min-w-[9.5rem] bg-[#F0F4F8] border border-[#C5D0DC] text-[#1A2332] rounded px-1.5 py-1 text-[14px] focus:outline-none focus:border-[#1B7A45]';
+  'w-full min-w-[6.5rem] bg-[#F0F4F8] border border-[#C5D0DC] text-[#1A2332] rounded px-1 py-1 text-[12px] focus:outline-none focus:border-[#1B7A45]';
 
 /** Vị trí + nội dung tooltip đang hiển thị */
 interface TipState {
@@ -164,7 +164,7 @@ const CountBadges: React.FC<{ err: number; warn: number; compact?: boolean }> = 
    Nền xanh đậm hơn thân bảng để tách bạch với dòng mạch; mỗi ô phải tự mang
    nền vì tfoot dùng position:sticky (nền của <tr> không phủ khi dính đáy). */
 const footRowCls = 'bg-[#D8EDE1]';
-const footCellCls = 'py-2.5 px-2 bg-[#D8EDE1] align-middle';
+const footCellCls = 'py-1 px-2 bg-[#D8EDE1] align-middle';
 const footNumCls = `${footCellCls} px-1.5 text-right font-bold tabular-nums text-[#1A2332] whitespace-nowrap`;
 
 /**
@@ -194,7 +194,7 @@ const FootPhaseCells: React.FC<{ total?: PanelTotalRow; shadow?: string }> = ({
   const cell = (v?: number) => (v === undefined ? '' : v.toFixed(2));
   return (
     <>
-      <td className={`${footNumCls} text-[16px] text-[#1B7A45]`} style={style}>
+      <td className={`${footNumCls} text-[12px] text-[#1B7A45]`} style={style}>
         {cell(total?.full)}
       </td>
       <td className={footNumCls} style={style}>{cell(total?.r)}</td>
@@ -439,27 +439,27 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
       {/* Circuit Spreadsheet Table — cuộn trong khung; thead sticky */}
       <div className="overflow-auto flex-1 min-h-0">
         <table className="w-full text-left text-sm text-[#1A2332] border-collapse">
-          <thead className="sticky top-0 z-30 bg-[#E8EEF4] text-[#1B7A45] font-bold uppercase border-b border-[#D5DEE8] text-[14px] shadow-[0_1px_0_0_#D5DEE8]">
+          <thead className="sticky top-0 z-30 bg-[#E8EEF4] text-[#1B7A45] font-bold uppercase border-b border-[#D5DEE8] text-[12px] shadow-[0_1px_0_0_#D5DEE8]">
             <tr>
               <th className="py-3 px-2 w-14 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Row</th>
-              <th className="py-3 px-2 min-w-[100px] font-bold whitespace-nowrap bg-[#E8EEF4]">Mã Mạch</th>
-              <th className="py-3 px-2 min-w-[240px] font-bold bg-[#E8EEF4]">Mô Tả Phụ Tải</th>
-              <th className="py-3 px-1.5 text-right font-bold whitespace-nowrap bg-[#E8EEF4]">Full (kVA)</th>
-              <th className="py-3 px-1.5 text-right font-bold whitespace-nowrap bg-[#E8EEF4]">R (kW)</th>
-              <th className="py-3 px-1.5 text-right font-bold whitespace-nowrap bg-[#E8EEF4]">Y (kW)</th>
-              <th className="py-3 px-1.5 text-right font-bold whitespace-nowrap bg-[#E8EEF4]">B (kW)</th>
-              <th className="py-3 px-2 min-w-[88px] text-right font-bold whitespace-nowrap bg-[#E8EEF4]">Itt (A)</th>
-              <th className="py-3 px-2 min-w-[150px] font-bold whitespace-nowrap bg-[#E8EEF4]">Loại CB</th>
+              <th className="py-3 px-2 min-w-[100px] text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Mã Mạch</th>
+              <th className="py-3 px-2 min-w-[240px] text-center font-bold bg-[#E8EEF4]">Mô Tả Phụ Tải</th>
+              <th className="py-3 px-1.5 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Full (kVA)</th>
+              <th className="py-3 px-1.5 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">R (kW)</th>
+              <th className="py-3 px-1.5 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Y (kW)</th>
+              <th className="py-3 px-1.5 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">B (kW)</th>
+              <th className="py-3 px-2 min-w-[88px] text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Itt (A)</th>
+              <th className="py-3 px-2 min-w-[130px] text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Loại CB</th>
               <th className="py-3 px-2 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Số Cực</th>
-              <th className="py-3 px-2 text-right font-bold whitespace-nowrap bg-[#E8EEF4]">In (A)</th>
+              <th className="py-3 px-2 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">In (A)</th>
               <th className="py-3 px-2 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Isc (kA)</th>
-              <th className="py-3 px-2 min-w-[180px] font-bold bg-[#E8EEF4]">Dây Pha (Phase)</th>
-              <th className="py-3 px-2 min-w-[150px] font-bold bg-[#E8EEF4]">Dây PE</th>
-              <th className="py-3 px-2 min-w-[220px] font-bold bg-[#E8EEF4]">Giải Pháp Lắp Đặt (Installation)</th>
+              <th className="py-3 px-2 min-w-[180px] text-center font-bold bg-[#E8EEF4]">Dây Pha (Phase)</th>
+              <th className="py-3 px-2 min-w-[150px] text-center font-bold bg-[#E8EEF4]">Dây PE</th>
+              <th className="py-3 px-2 min-w-[220px] text-center font-bold bg-[#E8EEF4]">Giải Pháp Lắp Đặt (Installation)</th>
               <th className="py-3 px-2 w-20 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Thẩm Tra</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#D5DEE8] font-mono text-[15px]">
+          <tbody className="divide-y divide-[#D5DEE8] font-mono text-[12px]">
             {currentPanel.circuits.map((row) => {
               const rowIssues = panelIssuesMap.get(row.rowIndex) || [];
               const byField = groupIssuesByField(rowIssues);
@@ -480,15 +480,15 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
                   }`}
                 >
                   <td className="py-3 px-2 text-center text-[#5A6A7A]">#{row.rowIndex}</td>
-                  <td className="py-3 px-2 font-bold text-[#1B7A45] whitespace-nowrap text-[16px]">{row.lineName}</td>
-                  <td className="py-3 px-2 font-sans text-[#1A2332] min-w-[240px] break-words whitespace-normal font-medium text-[15px] leading-snug">
+                  <td className="py-3 px-2 font-bold text-[#1B7A45] whitespace-nowrap text-[12px]">{row.lineName}</td>
+                  <td className="py-3 px-2 font-sans text-[#1A2332] min-w-[240px] break-words whitespace-normal font-medium text-[12px] leading-snug">
                     {row.description}
                   </td>
                   <td className="py-3 px-1.5 text-right whitespace-nowrap font-semibold">{row.fullLoad > 0 ? row.fullLoad.toFixed(1) : '-'}</td>
                   <td className="py-3 px-1.5 text-right whitespace-nowrap">{row.rLoad > 0 ? row.rLoad.toFixed(1) : '-'}</td>
                   <td className="py-3 px-1.5 text-right whitespace-nowrap">{row.yLoad > 0 ? row.yLoad.toFixed(1) : '-'}</td>
                   <td className="py-3 px-1.5 text-right whitespace-nowrap">{row.bLoad > 0 ? row.bLoad.toFixed(1) : '-'}</td>
-                  <td className="py-3 px-2 min-w-[88px] text-right font-bold text-[#1B7A45] whitespace-nowrap text-[15px]">
+                  <td className="py-3 px-2 min-w-[88px] text-right font-bold text-[#1B7A45] whitespace-nowrap text-[12px]">
                     {row.hasExcelError && row.iCalc === 0 ? (
                       <span className="text-[#DC2626]">#REF!</span>
                     ) : row.iCalc > 0 ? (
@@ -499,7 +499,7 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
                   </td>
 
                   {/* Loại CB */}
-                  <td className="py-2 px-1.5 font-bold text-[#1A2332] whitespace-nowrap min-w-[150px]">
+                  <td className="py-2 px-1.5 font-bold text-[#1A2332] whitespace-nowrap min-w-[110px]">
                     <CellWithBadge onShow={openTip} onHide={hideTip} isPinned={!!tip?.pinned} list={at('cbType')}>
                       {canEdit ? (
                         <select
@@ -543,7 +543,7 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
                   </td>
 
                   {/* In (A) */}
-                  <td className="py-2 px-1.5 text-right font-bold text-[#1B7A45] whitespace-nowrap text-[15px]">
+                  <td className="py-2 px-1.5 text-right font-bold text-[#1B7A45] whitespace-nowrap text-[12px]">
                     <CellWithBadge onShow={openTip} onHide={hideTip} isPinned={!!tip?.pinned} list={at('cbText')}>
                       {canEdit ? (
                         <select
@@ -626,7 +626,7 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
                           onChange={(e) => edit(row, 'installMethod', e.target.value)}
                         />
                       ) : row.installMethod ? (
-                        <span className="inline-block px-2.5 py-1 rounded bg-[#F0F4F8] border border-[#C5D0DC] text-[14px]">
+                        <span className="inline-block px-2.5 py-1 rounded bg-[#F0F4F8] border border-[#C5D0DC] text-[12px]">
                           {row.installMethod}
                         </span>
                       ) : (
@@ -662,7 +662,7 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
           {/* Khối tổng kết + lộ vào — nằm TRONG bảng để mọi giá trị thẳng cột với mạch con.
               sticky bottom: luôn thấy khi cuộn danh sách mạch dài. */}
           {currentPanel.footer && (
-            <tfoot className="sticky bottom-0 z-30 font-mono text-[15px]">
+            <tfoot className="sticky bottom-0 z-30 font-mono text-[12px]">
               {/* Dòng 1: tổng CS định mức (trái) + nhãn LỘ VÀO (phải, tận dụng vùng trống) */}
               <tr className={footRowCls}>
                 <td colSpan={3} className={footCellCls} style={{ boxShadow: FOOT_TOP_LINE }}>
@@ -676,12 +676,12 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
                   style={{ boxShadow: `${FOOT_TOP_LINE}, ${FOOT_LEFT_LINE}` }}
                 >
                   {inc && (
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-white border-2 border-[#1B7A45] whitespace-nowrap">
+                    <span className="inline-flex items-center gap-2 whitespace-nowrap">
                       <LogIn className="w-4 h-4 text-[#1B7A45]" strokeWidth={2.5} />
-                      <span className="font-sans text-[13px] font-bold uppercase tracking-wide text-[#1B7A45]">
+                      <span className="font-sans text-[12px] font-bold uppercase tracking-wide text-[#1B7A45]">
                         Lộ vào:
                       </span>
-                      <span className="font-sans text-[14px] font-bold text-[#1A2332]">
+                      <span className="font-sans text-[12px] font-bold text-[#1A2332]">
                         {inc.source || '—'}
                       </span>
                     </span>
@@ -703,7 +703,7 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
                 <FootPhaseCells total={currentPanel.footer.calcPower} />
                 {/* Dòng tính toán nằm đúng cột Itt (A) */}
                 <td
-                  className={`${footCellCls} text-right font-bold text-[#1B7A45] text-[16px] whitespace-nowrap`}
+                  className={`${footCellCls} text-right font-bold text-[#1B7A45] text-[12px] whitespace-nowrap`}
                 >
                   {currentPanel.footer.calcCurrent !== undefined
                     ? `${currentPanel.footer.calcCurrent.toFixed(2)} A`
