@@ -51,7 +51,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
           <div className="flex items-center space-x-2">
             <Settings className="w-5 h-5 text-[#1B7A45]" />
             <h3 className="text-xs font-bold text-[#1A2332] uppercase tracking-wider">
-              Cấu Hình Thông Số Thẩm Tra Hồ Sơ
+              Cấu Hình Thông Số Kiểm Tra Hồ Sơ
             </h3>
           </div>
           <button

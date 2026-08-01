@@ -41,7 +41,14 @@
  *      theo dõi coreCount lớn nhất từng gặp (maxSingleCableCoreCount)
  *  - Từ các số liệu này, người dùng có thể tự áp quy tắc, ví dụ:
  *      Mạch 1 pha (L+N)  cần totalPhaseCores >= 2
- *      Mạch 3 pha (L1L2L3) cần totalPhaseCores >= 3
+ *      Mạch 3 pha (L1L2L3) cần totalPhaseCores >= 3 (nếu tải CÂN BẰNG)
+ *                                              >= 4 (nếu tải KHÔNG cân bằng — cần thêm dây N)
+ *
+ * 3. isBalancedThreePhaseLoad() + checkThreePhaseCoreCount() (mục 4 bên dưới):
+ *    Bổ sung quan trọng — 1 mạch/lộ 3 pha (CB 3P) không mặc định chỉ cần 3 dây.
+ *    Nếu tải giữa 3 pha R/Y/B KHÔNG bằng nhau (vd tủ tổng gộp nhiều tải 1 pha
+ *    rải trên 3 pha để cân tải), dòng điện chạy về trung tính khác 0 -> BẮT BUỘC
+ *    có dây N -> cần tối thiểu 4 dây (L1,L2,L3,N), không phải 3.
  * ============================================================================
  */
 
@@ -375,7 +382,72 @@ export function getCableCoreStats(phaseCableText: string): CableCoreStats {
 }
 
 // ----------------------------------------------------------------------------
-// 4. (TUỲ CHỌN) SO SÁNH TIẾT DIỆN CÁP THỰC TẾ VỚI TIẾT DIỆN YÊU CẦU
+// 4. SỐ DÂY TỐI THIỂU CHO MẠCH 3 PHA: 3 DÂY (cân bằng) HAY 4 DÂY (cần trung tính)?
+// ----------------------------------------------------------------------------
+/**
+ * Bài học thực tế (bug đã gặp): 1 tủ điện 3 pha (CB 3P) nhưng tải R/Y/B KHÔNG
+ * bằng nhau (vd tủ tổng gộp nhiều tải 1 pha rải trên 3 pha để cân tải) — trường
+ * hợp này dòng điện chạy về dây trung tính khác 0 -> BẮT BUỘC phải có dây N,
+ * tức tối thiểu 4 dây (L1, L2, L3, N), không phải 3 dây như mạch 3 pha thuần
+ * (vd động cơ 3 pha cân bằng, chỉ cần L1,L2,L3, không cần N).
+ *
+ * Trước khi có bản cập nhật này, thuật toán luôn coi mạch 3 pha chỉ cần >=3 dây,
+ * nên trường hợp tủ 3 pha không cân tải mà chỉ đi 2 sợi cáp 1 lõi (thiếu cả dây
+ * pha thứ 3 lẫn dây N) không bị phát hiện là lỗi.
+ */
+
+/**
+ * Tải 3 pha có cân bằng không (R ≈ Y ≈ B, sai lệch trong ngưỡng tolerance mặc định 3%).
+ * - true  (cân bằng, vd động cơ 3 pha thuần)         -> chỉ cần 3 dây (L1,L2,L3), KHÔNG cần N.
+ * - false (không cân bằng, vd tủ tổng/lộ vào gộp      -> dòng trung tính khác 0,
+ *          nhiều tải 1 pha rải trên 3 pha)               bắt buộc có dây N -> tối thiểu 4 dây.
+ * Nếu 1 trong 3 giá trị <= 0 (không phải tải 3 pha đầy đủ) -> coi là KHÔNG cân bằng (an toàn hơn).
+ */
+export function isBalancedThreePhaseLoad(
+  rVal: number,
+  yVal: number,
+  bVal: number,
+  tolerance = 0.03
+): boolean {
+  if (rVal <= 0 || yVal <= 0 || bVal <= 0) return false;
+  const maxV = Math.max(rVal, yVal, bVal);
+  const minV = Math.min(rVal, yVal, bVal);
+  if (maxV <= 0) return false;
+  return (maxV - minV) / maxV <= tolerance;
+}
+
+/**
+ * Kiểm tra số lượng dây/lõi cáp pha cho 1 mạch/lộ 3 pha, trả về thông báo lỗi
+ * (string) nếu thiếu dây, hoặc null nếu đạt.
+ *
+ * @param phaseCableText  chuỗi cáp pha gốc (chỉ dùng để hiển thị trong thông báo lỗi)
+ * @param stats           kết quả getCableCoreStats(phaseCableText)
+ * @param isBalanced      kết quả isBalancedThreePhaseLoad(rVal, yVal, bVal)
+ */
+export function checkThreePhaseCoreCount(
+  phaseCableText: string,
+  stats: CableCoreStats,
+  isBalanced: boolean
+): string | null {
+  const requiredCores = isBalanced ? 3 : 4;
+  const neutralNote = isBalanced
+    ? ''
+    : ' (tải giữa các pha R/Y/B không cân bằng → dòng trung tính khác 0, bắt buộc phải có dây trung tính N)';
+
+  if (stats.singleCoreCableCount > 0 && stats.multiCoreCableCount === 0 && stats.singleCoreCableCount < requiredCores) {
+    return `Sai số lượng cáp 1 lõi cho mạch 3 pha${neutralNote}: cần tối thiểu ${requiredCores} sợi cáp 1 lõi (${requiredCores}x1C) hoặc cáp đa lõi (${requiredCores}C trở lên). Hiện tại chỉ có ${stats.singleCoreCableCount} sợi 1C (${phaseCableText}).`;
+  }
+  if (stats.multiCoreCableCount > 0 && stats.singleCoreCableCount === 0 && stats.maxSingleCableCoreCount < requiredCores) {
+    return `Sai loại/số lõi cáp cho mạch 3 pha${neutralNote}: cần cáp đa lõi tối thiểu ${requiredCores}C. Cáp ${stats.maxSingleCableCoreCount}C (${phaseCableText}) không đủ số lõi.`;
+  }
+  if (stats.totalPhaseCores > 0 && stats.totalPhaseCores < requiredCores) {
+    return `Thiếu số lượng dây/lõi cáp pha cho mạch 3 pha${neutralNote}: cần tối thiểu ${requiredCores} dây, hiện tại chỉ ghi nhận ${stats.totalPhaseCores} lõi/sợi cáp (${phaseCableText}).`;
+  }
+  return null;
+}
+
+// ----------------------------------------------------------------------------
+// 5. (TUỲ CHỌN) SO SÁNH TIẾT DIỆN CÁP THỰC TẾ VỚI TIẾT DIỆN YÊU CẦU
 // ----------------------------------------------------------------------------
 
 /**
@@ -423,7 +495,7 @@ export function isCableSectionOK(cableText: string, reqText: string): boolean {
 }
 
 // ----------------------------------------------------------------------------
-// 5. VÍ DỤ SỬ DỤNG (chạy thử: `npx tsx cable-section-algorithm.ts` hoặc
+// 6. VÍ DỤ SỬ DỤNG (chạy thử: `npx tsx cable-section-algorithm.ts` hoặc
 //    xoá phần này nếu chỉ cần import các hàm ở trên vào dự án khác)
 // ----------------------------------------------------------------------------
 
@@ -450,6 +522,37 @@ function demo() {
   console.log('----------------------------------------');
   console.log('isCableSectionOK("3x1C-6", "3x1C-4") =', isCableSectionOK('3x1C-6', '3x1C-4'));
   console.log('isCableSectionOK("3x1C-4", "3x1C-6") =', isCableSectionOK('3x1C-4', '3x1C-6'));
+
+  console.log('----------------------------------------');
+  console.log('=== Kiểm tra số dây cho mạch/lộ 3 pha ===');
+
+  // Case bug thực tế: tủ DB2-3F-COM — 3 pha (3P), tải KHÔNG cân bằng
+  // (R=1.87, Y=1.61, B=1.87 kVA), cáp lộ vào chỉ 2x(1C-4.0) -> thiếu dây N.
+  {
+    const phaseText = '2x(1C-4.0) Cu/XLPE/PVC';
+    const stats = getCableCoreStats(phaseText);
+    const balanced = isBalancedThreePhaseLoad(1.87, 1.61, 1.87);
+    const msg = checkThreePhaseCoreCount(phaseText, stats, balanced);
+    console.log('DB2-3F-COM (không cân bằng, chỉ 2 sợi) ->', msg ?? 'OK (không nên xảy ra!)');
+  }
+
+  // Case đúng: cùng tải không cân bằng nhưng đã đủ 4 sợi 1 lõi (L1,L2,L3,N)
+  {
+    const phaseText = '4x1C-240mm2 Cu/XLPE/PVC';
+    const stats = getCableCoreStats(phaseText);
+    const balanced = isBalancedThreePhaseLoad(30.4, 26.96, 26.96);
+    const msg = checkThreePhaseCoreCount(phaseText, stats, balanced);
+    console.log('MSB-01 (không cân bằng, đủ 4 sợi) ->', msg ?? 'OK');
+  }
+
+  // Case đúng: tải 3 pha cân bằng (động cơ), chỉ cần 3 sợi/lõi
+  {
+    const phaseText = '3C-2.5 Cu/XLPE/PVC';
+    const stats = getCableCoreStats(phaseText);
+    const balanced = isBalancedThreePhaseLoad(22.0, 22.0, 22.0);
+    const msg = checkThreePhaseCoreCount(phaseText, stats, balanced);
+    console.log('Động cơ 3 pha cân bằng (3C) ->', msg ?? 'OK');
+  }
 }
 
 // Chỉ chạy demo khi file này được thực thi trực tiếp (không chạy khi import)

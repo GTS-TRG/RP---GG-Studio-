@@ -983,6 +983,7 @@ function parsePanelFooter(
       phaseCableText: txt(cols.phaseCableText),
       peCableText: txt(cols.peCableText),
       installMethod: txt(cols.installMethod),
+      rowIndex: r,
     };
   };
 

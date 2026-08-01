@@ -44,6 +44,21 @@ const inputCls =
 const cbTypeSelectCls =
   'w-full min-w-[6.5rem] bg-[#F0F4F8] border border-[#C5D0DC] text-[#1A2332] rounded px-1 py-1 text-[12px] focus:outline-none focus:border-[#1B7A45]';
 
+/** Bỏ dấu tiếng Việt + hạ chữ thường, để tìm tủ không cần gõ đúng dấu */
+const COMBINING_DIACRITICS_RE = new RegExp(
+  '[' + String.fromCharCode(0x0300) + '-' + String.fromCharCode(0x036f) + ']',
+  'g'
+);
+
+function normalizeSearchText(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(COMBINING_DIACRITICS_RE, '')
+    .replace(/đ/gi, 'd')
+    .toLowerCase()
+    .trim();
+}
+
 /** Vị trí + nội dung tooltip đang hiển thị */
 interface TipState {
   issues: ReviewIssue[];
@@ -165,7 +180,7 @@ const CountBadges: React.FC<{ err: number; warn: number; compact?: boolean }> = 
    nền vì tfoot dùng position:sticky (nền của <tr> không phủ khi dính đáy). */
 const footRowCls = 'bg-[#D8EDE1]';
 const footCellCls = 'py-1 px-2 bg-[#D8EDE1] align-middle';
-const footNumCls = `${footCellCls} px-1.5 text-right font-bold tabular-nums text-[#1A2332] whitespace-nowrap`;
+const footNumCls = `${footCellCls} px-1.5 text-center font-bold tabular-nums text-[#1A2332] whitespace-nowrap`;
 
 /**
  * Đường kẻ của tfoot phải vẽ bằng box-shadow, KHÔNG dùng border:
@@ -212,7 +227,23 @@ const FootIncomingCell: React.FC<{
   wrap?: boolean;
   sans?: boolean;
   shadow?: string;
-}> = ({ value, align = 'left', bold = false, wrap = false, sans = false, shadow }) => (
+  /** Lỗi thẩm tra riêng của ô này (vd sai tiết diện/số lượng dây pha) — hiện icon giống ô mạch thường */
+  badgeList?: ReviewIssue[];
+  onShowBadge?: BadgeProps['onShow'];
+  onHideBadge?: () => void;
+  isPinned?: boolean;
+}> = ({
+  value,
+  align = 'left',
+  bold = false,
+  wrap = false,
+  sans = false,
+  shadow,
+  badgeList,
+  onShowBadge,
+  onHideBadge,
+  isPinned,
+}) => (
   <td
     style={shadow ? { boxShadow: shadow } : undefined}
     // Tailwind quét chuỗi tĩnh — không dùng `text-${align}` vì lớp sẽ không được sinh ra
@@ -222,7 +253,20 @@ const FootIncomingCell: React.FC<{
       wrap ? 'break-words whitespace-normal leading-snug' : 'whitespace-nowrap'
     } ${sans ? 'font-sans font-medium' : ''} ${bold ? 'font-bold text-[#1A2332]' : 'text-[#334155]'}`}
   >
-    {value}
+    {badgeList && onShowBadge && onHideBadge ? (
+      <div className="relative isolate inline-block max-w-full align-middle">
+        {value}
+        <IssueBadge
+          list={badgeList}
+          className="absolute -top-2.5 -right-3 z-[1] px-0.5"
+          onShow={onShowBadge}
+          onHide={onHideBadge}
+          isPinned={!!isPinned}
+        />
+      </div>
+    ) : (
+      value
+    )}
   </td>
 );
 
@@ -240,6 +284,13 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
   const [onlyIssues, setOnlyIssues] = useState(false);
   /** Vị trí danh sách tủ (dùng fixed để không bị khung card cắt mất) */
   const [listPos, setListPos] = useState<{ x: number; y: number; w: number } | null>(null);
+  /** Từ khoá tìm nhanh tên tủ trong danh sách sổ xuống */
+  const [panelSearch, setPanelSearch] = useState('');
+
+  // Đóng danh sách -> xoá luôn từ khoá tìm, để lần mở sau bắt đầu sạch
+  useEffect(() => {
+    if (!listPos) setPanelSearch('');
+  }, [listPos]);
 
   const currentPanel = panels.find((p) => p.sheetName === selectedSheet) || panels[0];
 
@@ -329,6 +380,11 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
 
   const navIndex = navList.findIndex((p) => p.sheetName === currentPanel.sheetName);
 
+  /** Danh sách hiển thị trong dropdown sau khi lọc thêm theo ô tìm kiếm (không ảnh hưởng nút </>) */
+  const searchedNavList = panelSearch.trim()
+    ? navList.filter((p) => normalizeSearchText(p.sheetName).includes(normalizeSearchText(panelSearch)))
+    : navList;
+
   /** Chuyển sang tủ trước/sau trong danh sách đang lọc (quay vòng) */
   const goRelative = (step: number) => {
     if (navList.length < 2) return;
@@ -339,6 +395,12 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
 
   /** Lộ vào — trải trên 2 dòng của tfoot nên tách ra cho gọn */
   const inc = currentPanel.footer?.incoming;
+  // Issue của lộ vào không gắn với dòng mạch nào (panel.circuits) nên phải tra riêng
+  // theo rowIndex đã gán khi parse (xem reviewIncomingCable trong panelReviewer.ts).
+  const incomingRowIndex = inc?.rowIndex ?? currentPanel.endRow;
+  const incomingIssues = inc ? panelIssuesMap.get(incomingRowIndex) || [] : [];
+  const incByField = groupIssuesByField(incomingIssues);
+  const incAt = (f: IssueField) => incByField.get(f) || [];
 
   const hideTip = () => setTip(null);
 
@@ -445,9 +507,9 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
               <th className="py-3 px-2 min-w-[100px] text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Mã Mạch</th>
               <th className="py-3 px-2 min-w-[240px] text-center font-bold bg-[#E8EEF4]">Mô Tả Phụ Tải</th>
               <th className="py-3 px-1.5 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Full (kVA)</th>
-              <th className="py-3 px-1.5 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">R (kW)</th>
-              <th className="py-3 px-1.5 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Y (kW)</th>
-              <th className="py-3 px-1.5 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">B (kW)</th>
+              <th className="py-3 px-1.5 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">R</th>
+              <th className="py-3 px-1.5 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Y</th>
+              <th className="py-3 px-1.5 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">B</th>
               <th className="py-3 px-2 min-w-[88px] text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Itt (A)</th>
               <th className="py-3 px-2 min-w-[130px] text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Loại CB</th>
               <th className="py-3 px-2 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Số Cực</th>
@@ -456,7 +518,7 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
               <th className="py-3 px-2 min-w-[180px] text-center font-bold bg-[#E8EEF4]">Dây Pha (Phase)</th>
               <th className="py-3 px-2 min-w-[150px] text-center font-bold bg-[#E8EEF4]">Dây PE</th>
               <th className="py-3 px-2 min-w-[220px] text-center font-bold bg-[#E8EEF4]">Giải Pháp Lắp Đặt (Installation)</th>
-              <th className="py-3 px-2 w-20 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Thẩm Tra</th>
+              <th className="py-3 px-2 w-20 text-center font-bold whitespace-nowrap bg-[#E8EEF4]">Kiểm Tra</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#D5DEE8] font-mono text-[12px]">
@@ -484,10 +546,10 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
                   <td className="py-3 px-2 font-sans text-[#1A2332] min-w-[240px] break-words whitespace-normal font-medium text-[12px] leading-snug">
                     {row.description}
                   </td>
-                  <td className="py-3 px-1.5 text-right whitespace-nowrap font-semibold">{row.fullLoad > 0 ? row.fullLoad.toFixed(1) : '-'}</td>
-                  <td className="py-3 px-1.5 text-right whitespace-nowrap">{row.rLoad > 0 ? row.rLoad.toFixed(1) : '-'}</td>
-                  <td className="py-3 px-1.5 text-right whitespace-nowrap">{row.yLoad > 0 ? row.yLoad.toFixed(1) : '-'}</td>
-                  <td className="py-3 px-1.5 text-right whitespace-nowrap">{row.bLoad > 0 ? row.bLoad.toFixed(1) : '-'}</td>
+                  <td className="py-3 px-1.5 text-center whitespace-nowrap font-semibold">{row.fullLoad > 0 ? row.fullLoad.toFixed(1) : '-'}</td>
+                  <td className="py-3 px-1.5 text-center whitespace-nowrap">{row.rLoad > 0 ? row.rLoad.toFixed(1) : '-'}</td>
+                  <td className="py-3 px-1.5 text-center whitespace-nowrap">{row.yLoad > 0 ? row.yLoad.toFixed(1) : '-'}</td>
+                  <td className="py-3 px-1.5 text-center whitespace-nowrap">{row.bLoad > 0 ? row.bLoad.toFixed(1) : '-'}</td>
                   <td className="py-3 px-2 min-w-[88px] text-right font-bold text-[#1B7A45] whitespace-nowrap text-[12px]">
                     {row.hasExcelError && row.iCalc === 0 ? (
                       <span className="text-[#DC2626]">#REF!</span>
@@ -713,10 +775,51 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
                 <FootIncomingCell value={inc?.poleVal} align="center" />
                 <FootIncomingCell value={inc?.cbText} align="right" bold />
                 <FootIncomingCell value={inc?.cbIsc} align="center" />
-                <FootIncomingCell value={inc?.phaseCableText} wrap />
-                <FootIncomingCell value={inc?.peCableText} wrap />
-                <FootIncomingCell value={inc?.installMethod} wrap sans />
-                <td className={footCellCls} />
+                <FootIncomingCell
+                  value={inc?.phaseCableText}
+                  wrap
+                  badgeList={incAt('phaseCableText')}
+                  onShowBadge={openTip}
+                  onHideBadge={hideTip}
+                  isPinned={!!tip?.pinned}
+                />
+                <FootIncomingCell
+                  value={inc?.peCableText}
+                  wrap
+                  badgeList={incAt('peCableText')}
+                  onShowBadge={openTip}
+                  onHideBadge={hideTip}
+                  isPinned={!!tip?.pinned}
+                />
+                <FootIncomingCell
+                  value={inc?.installMethod}
+                  wrap
+                  sans
+                  badgeList={incAt('installMethod')}
+                  onShowBadge={openTip}
+                  onHideBadge={hideTip}
+                  isPinned={!!tip?.pinned}
+                />
+                <td className={`${footCellCls} text-center align-middle`}>
+                  {inc ? (
+                    incomingIssues.length === 0 ? (
+                      <span
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#E6F4EC] border border-[#A8D4B8]"
+                        title="Đạt tiêu chuẩn"
+                      >
+                        <Check className="w-3.5 h-3.5 text-[#1B7A45]" strokeWidth={3} />
+                      </span>
+                    ) : (
+                      <IssueBadge
+                        list={incomingIssues}
+                        className="px-1 py-0.5"
+                        onShow={openTip}
+                        onHide={hideTip}
+                        isPinned={!!tip?.pinned}
+                      />
+                    )
+                  ) : null}
+                </td>
               </tr>
             </tfoot>
           )}
@@ -726,35 +829,59 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
       {/* Danh sách tủ — fixed để không bị khung card (overflow-hidden) cắt mất */}
       {listPos && (
         <div
-          className="fixed z-50 max-h-[360px] overflow-auto bg-white border border-[#D5DEE8] rounded-xl shadow-lg py-1"
+          className="fixed z-50 max-h-[400px] flex flex-col bg-white border border-[#D5DEE8] rounded-xl shadow-lg overflow-hidden"
           style={{ left: listPos.x, top: listPos.y, width: listPos.w }}
           onClick={(e) => e.stopPropagation()}
         >
-          {navList.map((p) => {
-            const c = countsByPanel.get(p.sheetName) || { err: 0, warn: 0 };
-            const active = p.sheetName === currentPanel.sheetName;
-            return (
-              <button
-                key={p.sheetName}
-                type="button"
-                onClick={() => {
-                  setSelectedSheet(p.sheetName);
+          {/* Ô tìm nhanh tên tủ — sticky trên đầu, không cuộn theo danh sách */}
+          <div className="shrink-0 p-2 border-b border-[#E8EEF4] bg-white">
+            <input
+              type="text"
+              autoFocus
+              value={panelSearch}
+              onChange={(e) => setPanelSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.stopPropagation();
                   setListPos(null);
-                }}
-                className={`w-full px-3 py-2 flex items-center justify-between gap-3 text-left text-[13px] transition-colors ${
-                  active
-                    ? 'bg-[#E6F4EC] text-[#1B7A45] font-bold'
-                    : 'text-[#1A2332] hover:bg-[#F0F4F8]'
-                }`}
-              >
-                <span className="truncate">{p.sheetName}</span>
-                <CountBadges err={c.err} warn={c.warn} />
-              </button>
-            );
-          })}
-          {navList.length === 0 && (
-            <div className="px-3 py-3 text-[12px] text-[#5A6A7A]">Không có tủ nào.</div>
-          )}
+                }
+              }}
+              placeholder="Tìm tên tủ..."
+              className="w-full bg-[#F0F4F8] border border-[#C5D0DC] text-[#1A2332] rounded-lg px-2.5 py-1.5 text-[13px] focus:outline-none focus:border-[#1B7A45]"
+            />
+          </div>
+
+          <div className="overflow-auto py-1">
+            {searchedNavList.map((p) => {
+              const c = countsByPanel.get(p.sheetName) || { err: 0, warn: 0 };
+              const active = p.sheetName === currentPanel.sheetName;
+              return (
+                <button
+                  key={p.sheetName}
+                  type="button"
+                  onClick={() => {
+                    setSelectedSheet(p.sheetName);
+                    setListPos(null);
+                  }}
+                  className={`w-full px-3 py-2 flex items-center justify-between gap-3 text-left text-[13px] transition-colors ${
+                    active
+                      ? 'bg-[#E6F4EC] text-[#1B7A45] font-bold'
+                      : 'text-[#1A2332] hover:bg-[#F0F4F8]'
+                  }`}
+                >
+                  <span className="truncate">{p.sheetName}</span>
+                  <CountBadges err={c.err} warn={c.warn} />
+                </button>
+              );
+            })}
+            {searchedNavList.length === 0 && (
+              <div className="px-3 py-3 text-[12px] text-[#5A6A7A]">
+                {panelSearch.trim()
+                  ? `Không tìm thấy tủ khớp "${panelSearch.trim()}".`
+                  : 'Không có tủ nào.'}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

@@ -4,6 +4,7 @@ import {
   getPrefix,
   getSheetNameFromFormula,
   getShortDesc,
+  isBalancedThreePhaseLoad,
   isFireCircuit,
   isLowSpeedFan,
   isThreePhaseByLoads,
@@ -76,6 +77,35 @@ export function getCableCoreStats(phaseCableText: string): CableCoreStats {
   };
 }
 
+/**
+ * Kiểm tra số lượng dây/lõi cáp pha cho mạch 3 pha (không áp dụng cho Sao/Tam giác).
+ * - Tải cân bằng (isBalanced=true, vd động cơ 3 pha thuần): chỉ cần 3 dây (L1,L2,L3).
+ * - Tải không cân bằng (isBalanced=false, vd tủ tổng gộp nhiều tải 1 pha rải trên 3 pha,
+ *   lộ vào tủ phân phối...): dòng trung tính khác 0, bắt buộc có dây N -> cần tối thiểu 4 dây.
+ * Trả về thông báo lỗi (string) nếu sai, null nếu đạt.
+ */
+export function checkThreePhaseCoreCount(
+  phaseCableText: string,
+  stats: CableCoreStats,
+  isBalanced: boolean
+): string | null {
+  const requiredCores = isBalanced ? 3 : 4;
+  const neutralNote = isBalanced
+    ? ''
+    : ' (tải giữa các pha R/Y/B không cân bằng → dòng trung tính khác 0, bắt buộc phải có dây trung tính N)';
+
+  if (stats.singleCoreCableCount > 0 && stats.multiCoreCableCount === 0 && stats.singleCoreCableCount < requiredCores) {
+    return `Sai số lượng cáp 1 lõi cho mạch 3 pha${neutralNote}: cần tối thiểu ${requiredCores} sợi cáp 1 lõi (${requiredCores}x1C) hoặc cáp đa lõi (${requiredCores}C trở lên). Hiện tại chỉ có ${stats.singleCoreCableCount} sợi 1C (${phaseCableText}).`;
+  }
+  if (stats.multiCoreCableCount > 0 && stats.singleCoreCableCount === 0 && stats.maxSingleCableCoreCount < requiredCores) {
+    return `Sai loại/số lõi cáp cho mạch 3 pha${neutralNote}: cần cáp đa lõi tối thiểu ${requiredCores}C. Cáp ${stats.maxSingleCableCoreCount}C (${phaseCableText}) không đủ số lõi.`;
+  }
+  if (stats.totalPhaseCores > 0 && stats.totalPhaseCores < requiredCores) {
+    return `Thiếu số lượng dây/lõi cáp pha cho mạch 3 pha${neutralNote}: cần tối thiểu ${requiredCores} dây, hiện tại chỉ ghi nhận ${stats.totalPhaseCores} lõi/sợi cáp (${phaseCableText}).`;
+  }
+  return null;
+}
+
 export const DEFAULT_CONFIG: ProjectConfig = {
   minIscMsb: 65,          // kA
   minAmpMsb: 32,          // A
@@ -132,6 +162,24 @@ export function reviewWorkbookPanels(
         });
       }
     }
+
+    const incomingIssues = reviewIncomingCable(panel);
+    for (const item of incomingIssues) {
+      issues.push({
+        id: `ISSUE-${issueCounter++}`,
+        sheetName: panel.sheetName,
+        lineName: 'INCOMING',
+        shortDesc: panel.footer?.incoming?.source || 'Lộ vào / Incoming',
+        lineNameWithDesc: `INCOMING (${panel.footer?.incoming?.source || 'Lộ vào / Incoming'})`,
+        description: item.text,
+        isWarning: item.isWarning,
+        ruleCode: item.ruleCode,
+        status: 'UNRESOLVED',
+        remarks: '',
+        rowIndex: panel.footer?.incoming?.rowIndex ?? panel.endRow,
+        isResolved: false,
+      });
+    }
   }
 
   return issues;
@@ -141,6 +189,57 @@ interface InternalIssue {
   text: string;
   isWarning: boolean;
   ruleCode: ReviewIssue['ruleCode'];
+}
+
+/**
+ * Thẩm tra cáp lộ vào (Incoming) — CB tổng + cáp nguồn cấp cho tủ.
+ * Trước đây khối này chỉ đọc để hiển thị, không tham gia thẩm tra nên các lỗi như
+ * "tủ 3 pha nhưng lộ vào chỉ có 2 sợi cáp pha" (thiếu dây trung tính N) không bị phát hiện.
+ */
+function reviewIncomingCable(panel: PanelSheetData): InternalIssue[] {
+  const issues: InternalIssue[] = [];
+  const inc = panel.footer?.incoming;
+  if (!inc || !inc.phaseCableText) return issues;
+
+  const totals = panel.footer?.calcPower ?? panel.footer?.ratedPower;
+  const rVal = totals?.r ?? 0;
+  const yVal = totals?.y ?? 0;
+  const bVal = totals?.b ?? 0;
+
+  const poleIsThreePhase = isValidThreePhasePole(inc.poleVal);
+  const poleIsSinglePhase = isValidSinglePhasePole(inc.poleVal);
+  // Ưu tiên số cực CB (3P/4P) vì luôn có sẵn; chỉ suy từ tải R/Y/B khi cột số cực trống/không hợp lệ.
+  const isThreePhase = poleIsThreePhase || (!poleIsSinglePhase && isThreePhaseByLoads(rVal, yVal, bVal));
+
+  const stats = getCableCoreStats(inc.phaseCableText);
+
+  if (isThreePhase) {
+    const isBalanced = isBalancedThreePhaseLoad(rVal, yVal, bVal);
+    const coreCountMsg = checkThreePhaseCoreCount(inc.phaseCableText, stats, isBalanced);
+    if (coreCountMsg) {
+      issues.push({
+        text: `[Lộ vào/Incoming] ${coreCountMsg}`,
+        isWarning: false,
+        ruleCode: 'RULE_PHASE_CABLE',
+      });
+    }
+  } else if (poleIsSinglePhase) {
+    if (stats.singleCoreCableCount > 0 && stats.multiCoreCableCount === 0 && stats.singleCoreCableCount < 2) {
+      issues.push({
+        text: `[Lộ vào/Incoming] Sai số lượng cáp cho lộ vào 1 pha: cần tối thiểu 2 sợi cáp 1 lõi (2x1C) cho dây pha L và dây trung tính N. Hiện tại chỉ có ${stats.singleCoreCableCount} sợi 1C (${inc.phaseCableText}).`,
+        isWarning: false,
+        ruleCode: 'RULE_PHASE_CABLE',
+      });
+    } else if (stats.multiCoreCableCount > 0 && stats.singleCoreCableCount === 0 && stats.maxSingleCableCoreCount < 2) {
+      issues.push({
+        text: `[Lộ vào/Incoming] Sai số lõi cáp cho lộ vào 1 pha: cần tối thiểu cáp 2C cho L và N. Cáp hiện tại (${inc.phaseCableText}) chỉ có ${stats.maxSingleCableCoreCount} lõi.`,
+        isWarning: false,
+        ruleCode: 'RULE_PHASE_CABLE',
+      });
+    }
+  }
+
+  return issues;
 }
 
 /**
@@ -452,22 +551,13 @@ function reviewOneCircuit(
             });
           }
         } else {
-          // Standard 3-phase circuit requires at least 3 phase conductors (L1, L2, L3)
-          if (stats.singleCoreCableCount > 0 && stats.multiCoreCableCount === 0 && stats.singleCoreCableCount < 3) {
+          // Mạch 3 pha thường: tải cân bằng chỉ cần 3 dây (L1,L2,L3); tải không cân bằng
+          // (vd gộp nhiều tải 1 pha rải trên 3 pha) bắt buộc có dây N -> cần tối thiểu 4 dây.
+          const isBalanced = isBalancedThreePhaseLoad(row.rLoad, row.yLoad, row.bLoad);
+          const coreCountMsg = checkThreePhaseCoreCount(row.phaseCableText, stats, isBalanced);
+          if (coreCountMsg) {
             issues.push({
-              text: `Sai số lượng cáp 1 lõi cho mạch 3 pha: Mạch 3 pha cần ít nhất 3 sợi cáp 1 lõi (3x1C) cho 3 pha (L1, L2, L3) hoặc cáp đa lõi (3C/4C/5C). Hiện tại chỉ có ${stats.singleCoreCableCount} sợi 1C (${row.phaseCableText}).`,
-              isWarning: isSpare,
-              ruleCode: 'RULE_PHASE_CABLE',
-            });
-          } else if (stats.multiCoreCableCount > 0 && stats.singleCoreCableCount === 0 && stats.maxSingleCableCoreCount < 3) {
-            issues.push({
-              text: `Sai loại/số lõi cáp cho mạch 3 pha: Mạch 3 pha cần cáp đa lõi tối thiểu 3C (L1, L2, L3) hoặc cáp 1 lõi 3x1C. Cáp ${stats.maxSingleCableCoreCount}C (${row.phaseCableText}) không đủ số lõi cho 3 pha.`,
-              isWarning: isSpare,
-              ruleCode: 'RULE_PHASE_CABLE',
-            });
-          } else if (stats.totalPhaseCores > 0 && stats.totalPhaseCores < 3) {
-            issues.push({
-              text: `Thiếu số lượng dây/lõi cáp pha cho mạch 3 pha: Mạch 3 pha yêu cầu tối thiểu 3 dây pha (L1, L2, L3), hiện tại chỉ ghi nhận ${stats.totalPhaseCores} lõi/sợi cáp (${row.phaseCableText}).`,
+              text: coreCountMsg,
               isWarning: isSpare,
               ruleCode: 'RULE_PHASE_CABLE',
             });

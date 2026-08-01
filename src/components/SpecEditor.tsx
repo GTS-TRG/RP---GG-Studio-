@@ -901,7 +901,7 @@ export const SpecEditor: React.FC<SpecEditorProps> = ({
             <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto">
               <label
                 className="flex items-center gap-2 px-3 py-1.5 bg-[#FFFBEB] border border-[#F59E0B] rounded-full text-xs"
-                title="Tỉ lệ luồn dây tối đa trong ống. Đổi giá trị này sẽ thẩm tra lại toàn bộ các mạch."
+                title="Tỉ lệ luồn dây tối đa trong ống. Đổi giá trị này sẽ kiểm tra lại toàn bộ các mạch."
               >
                 <span className="font-semibold text-[#1A2332] whitespace-nowrap">
                   Tỉ lệ lấp đầy tối đa

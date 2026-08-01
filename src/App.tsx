@@ -288,7 +288,7 @@ export default function App() {
       alert(
         'Reload cần mở file bằng nút "Open workbook" trước.\n\n' +
           'Khi đó web app giữ được liên kết tới file trên đĩa, ' +
-          'nên mỗi lần bạn lưu file trong Excel là thẩm tra lại ngay.'
+          'nên mỗi lần bạn lưu file trong Excel là kiểm tra lại ngay.'
       );
       return;
     }
@@ -673,7 +673,6 @@ export default function App() {
         onOpenConfig={() => setIsConfigOpen(true)}
         onOpenRules={() => setIsRulesOpen(true)}
         onDownloadSample={handleDownloadSample}
-        onLoadDemo={loadDemoSample}
         onExportReport={handleExportReport}
         onSaveToExcel={handleSaveToExcel}
         hasIssues={issues.length > 0}
@@ -778,7 +777,7 @@ export default function App() {
 
             {panels.length === 0 && !isLoading && (
               <div className="bg-[#FFFFFF] border border-dashed border-[#C5D0DC] rounded-2xl p-10 text-center text-sm text-[#5A6A7A]">
-                Nạp file Excel từ task panel bên trái để bắt đầu thẩm tra.
+                Nạp file Excel từ task panel bên trái để bắt đầu kiểm tra.
               </div>
             )}
 

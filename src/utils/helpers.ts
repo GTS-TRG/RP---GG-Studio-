@@ -205,6 +205,25 @@ export function isThreePhaseByLoads(rVal: number, yVal: number, bVal: number): b
   return cnt >= 2;
 }
 
+/**
+ * Tải 3 pha có cân bằng không (R ≈ Y ≈ B, sai lệch trong ngưỡng tolerance).
+ * Cân bằng (vd tải động cơ 3 pha thuần) -> không bắt buộc dây trung tính, 3 dây (L1,L2,L3) là đủ.
+ * Không cân bằng (vd tủ tổng gộp nhiều tải 1 pha rải trên 3 pha) -> dòng trung tính khác 0,
+ * bắt buộc phải có dây N -> tối thiểu 4 dây (L1,L2,L3,N).
+ */
+export function isBalancedThreePhaseLoad(
+  rVal: number,
+  yVal: number,
+  bVal: number,
+  tolerance = 0.03
+): boolean {
+  if (rVal <= 0 || yVal <= 0 || bVal <= 0) return false;
+  const maxV = Math.max(rVal, yVal, bVal);
+  const minV = Math.min(rVal, yVal, bVal);
+  if (maxV <= 0) return false;
+  return (maxV - minV) / maxV <= tolerance;
+}
+
 export function isValidSinglePhasePole(poleVal: string): boolean {
   const p = normalizePoleValue(poleVal);
   return p === '1P' || p === '1P+N' || p === '2P';

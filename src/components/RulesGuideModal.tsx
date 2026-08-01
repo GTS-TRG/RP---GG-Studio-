@@ -96,7 +96,7 @@ export const RulesGuideModal: React.FC<RulesGuideModalProps> = ({ isOpen, onClos
     },
     {
       num: '12',
-      title: 'Bảo Toàn Lịch Sử Thẩm Tra (Audit Trail)',
+      title: 'Bảo Toàn Lịch Sử Kiểm Tra (Audit Trail)',
       desc: 'Khi kiểm tra lại file Excel hoặc cập nhật file, các trạng thái đã duyệt (OK, IGNORE, APPROVED) và Ghi chú kỹ sư (Remarks) sẽ được lưu giữ nguyên vẹn.',
       badge: 'AUDIT TRAIL',
       color: 'border-emerald-500/50 bg-emerald-950/20 text-emerald-300',
@@ -111,7 +111,7 @@ export const RulesGuideModal: React.FC<RulesGuideModalProps> = ({ isOpen, onClos
           <div className="flex items-center space-x-2">
             <BookOpen className="w-5 h-5 text-[#1B7A45]" />
             <h3 className="text-xs font-bold text-[#1A2332] uppercase tracking-wider">
-              Hệ Thống 13 Quy Chuẩn Thẩm Tra Bảng Tính Tải Điện
+              Hệ Thống 13 Quy Chuẩn Kiểm Tra Bảng Tính Tải Điện
             </h3>
           </div>
           <button

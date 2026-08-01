@@ -281,7 +281,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
               <button
                 onClick={onReload}
                 disabled={isLoading}
-                title="Đọc lại file từ đĩa và thẩm tra lại ngay"
+                title="Đọc lại file từ đĩa và kiểm tra lại ngay"
                 className={`disabled:opacity-60 text-white text-xs font-semibold rounded-full transition-colors flex items-center justify-center space-x-1.5 shadow-xs ${
                   diskChanged
                     ? 'bg-[#B45309] hover:bg-[#92400E] animate-pulse'

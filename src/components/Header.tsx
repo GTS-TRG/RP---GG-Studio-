@@ -1,11 +1,10 @@
 import React from 'react';
-import { ShieldCheck, Settings, BookOpen, Download, FileSpreadsheet, Play, Save } from 'lucide-react';
+import { ShieldCheck, Settings, BookOpen, Download, FileSpreadsheet, Save } from 'lucide-react';
 
 interface HeaderProps {
   onOpenConfig: () => void;
   onOpenRules: () => void;
   onDownloadSample: () => void;
-  onLoadDemo: () => void;
   onExportReport: () => void;
   onSaveToExcel?: () => void;
   hasIssues: boolean;
@@ -19,7 +18,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenConfig,
   onOpenRules,
   onDownloadSample,
-  onLoadDemo,
   onExportReport,
   onSaveToExcel,
   hasIssues,
@@ -38,28 +36,19 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <h1 className="text-base sm:text-lg font-bold tracking-tight text-[#1A2332] flex items-center gap-2">
-              <span>VoltReview AI</span>
+              <span>PanelReview</span>
               <span className="text-xs font-bold text-[#1B7A45] uppercase tracking-widest bg-[#E6F4EC] border border-[#A8D4B8] px-2 py-0.5 rounded-full">
                 Analyzer
               </span>
             </h1>
             <p className="text-xs text-[#5A6A7A] hidden sm:block">
-              Thẩm tra Bảng tính tải điện Excel theo Tiêu chuẩn Kỹ thuật Điện
+              Kiểm tra Bảng tính tải điện Excel theo Tiêu chuẩn Kỹ thuật Điện
             </p>
           </div>
         </div>
 
         {/* Actions */}
         <div className="flex items-center space-x-2 sm:space-x-2.5">
-          <button
-            onClick={onLoadDemo}
-            title="Thử ngay với dữ liệu bảng tính mẫu"
-            className="flex items-center space-x-1.5 text-xs font-medium bg-[#2F6F4E] text-white hover:bg-[#255A3F] px-3 py-1.5 rounded-full transition-colors shadow-xs"
-          >
-            <Play className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Thử mẫu Demo</span>
-          </button>
-
           <button
             onClick={onDownloadSample}
             title="Tải file Excel mẫu (.xlsx)"

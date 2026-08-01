@@ -59,7 +59,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({
           </div>
           <div>
             <h2 className="text-xs font-bold text-[#1A2332] uppercase tracking-wider">
-              Bảng Báo Cáo Thẩm Tra Hồ Sơ (Audit Trail)
+              Bảng Báo Cáo Kiểm Tra Hồ Sơ (Audit Trail)
             </h2>
             <p className="text-xs text-[#5A6A7A]">
               Hiển thị {filteredIssues.length} / {issues.length} vấn đề phát hiện
@@ -147,7 +147,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({
           <CheckCircle className="w-12 h-12 text-[#1B7A45] mx-auto mb-3 opacity-90" />
           <h3 className="text-base font-bold text-[#1A2332]">Không tìm thấy vấn đề vi phạm nào!</h3>
           <p className="text-xs text-[#5A6A7A] max-w-sm mx-auto mt-1">
-            Không có lỗi hoặc cảnh báo phù hợp với bộ lọc hiện tại. Bảng tính đạt yêu cầu thẩm tra.
+            Không có lỗi hoặc cảnh báo phù hợp với bộ lọc hiện tại. Bảng tính đạt yêu cầu kiểm tra.
           </p>
         </div>
       ) : (
@@ -159,7 +159,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({
                 <th className="py-3 px-3 min-w-[160px] w-48 font-bold whitespace-nowrap">Tủ Điện</th>
                 <th className="py-3 px-3 min-w-[200px] font-bold">Mạch & Mô Tả</th>
                 <th className="py-3 px-4 min-w-[380px] font-bold">Nội Dung Kiểm Tra Vi Phạm / Chi Tiết</th>
-                <th className="py-3 px-3 w-36 min-w-[150px] text-center font-bold">Trạng Thái Thẩm Tra</th>
+                <th className="py-3 px-3 w-36 min-w-[150px] text-center font-bold">Trạng Thái Kiểm Tra</th>
                 <th className="py-3 px-3 min-w-[260px] w-64 font-bold">Ghi Chú Kỹ Sư (Remarks)</th>
               </tr>
             </thead>

@@ -108,6 +108,8 @@ export interface PanelIncoming {
   phaseCableText: string;
   peCableText: string;
   installMethod: string;
+  /** Dòng Excel (0-based) nơi đọc được dữ liệu lộ vào — dùng để gắn issue thẩm tra */
+  rowIndex?: number;
 }
 
 /**
