@@ -42,7 +42,7 @@ const inputCls =
   'w-full min-w-[4.5rem] bg-[#F0F4F8] border border-[#C5D0DC] text-[#1A2332] rounded px-1.5 py-1 text-[12px] focus:outline-none focus:border-[#1B7A45]';
 /** Select Loại CB — đủ hiện RCBO(30mA), không dư khoảng trống */
 const cbTypeSelectCls =
-  'w-full min-w-[6.5rem] bg-[#F0F4F8] border border-[#C5D0DC] text-[#1A2332] rounded px-1 py-1 text-[12px] focus:outline-none focus:border-[#1B7A45]';
+  'w-full min-w-[6.5rem] bg-[#F0F4F8] border border-[#C5D0DC] text-[#1A2332] rounded px-1 py-1 text-[12px] text-center focus:outline-none focus:border-[#1B7A45]';
 
 /** Bỏ dấu tiếng Việt + hạ chữ thường, để tìm tủ không cần gõ đúng dấu */
 const COMBINING_DIACRITICS_RE = new RegExp(
@@ -550,7 +550,7 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
                   <td className="py-3 px-1.5 text-center whitespace-nowrap">{row.rLoad > 0 ? row.rLoad.toFixed(1) : '-'}</td>
                   <td className="py-3 px-1.5 text-center whitespace-nowrap">{row.yLoad > 0 ? row.yLoad.toFixed(1) : '-'}</td>
                   <td className="py-3 px-1.5 text-center whitespace-nowrap">{row.bLoad > 0 ? row.bLoad.toFixed(1) : '-'}</td>
-                  <td className="py-3 px-2 min-w-[88px] text-right font-bold text-[#1B7A45] whitespace-nowrap text-[12px]">
+                  <td className="py-3 px-2 min-w-[88px] text-center font-bold text-[#1B7A45] whitespace-nowrap text-[12px]">
                     {row.hasExcelError && row.iCalc === 0 ? (
                       <span className="text-[#DC2626]">#REF!</span>
                     ) : row.iCalc > 0 ? (
@@ -561,7 +561,7 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
                   </td>
 
                   {/* Loại CB */}
-                  <td className="py-2 px-1.5 font-bold text-[#1A2332] whitespace-nowrap min-w-[110px]">
+                  <td className="py-2 px-1.5 text-center font-bold text-[#1A2332] whitespace-nowrap min-w-[110px]">
                     <CellWithBadge onShow={openTip} onHide={hideTip} isPinned={!!tip?.pinned} list={at('cbType')}>
                       {canEdit ? (
                         <select
@@ -765,13 +765,13 @@ export const PanelViewer: React.FC<PanelViewerProps> = ({
                 <FootPhaseCells total={currentPanel.footer.calcPower} />
                 {/* Dòng tính toán nằm đúng cột Itt (A) */}
                 <td
-                  className={`${footCellCls} text-right font-bold text-[#1B7A45] text-[12px] whitespace-nowrap`}
+                  className={`${footCellCls} text-center font-bold text-[#1B7A45] text-[12px] whitespace-nowrap`}
                 >
                   {currentPanel.footer.calcCurrent !== undefined
                     ? `${currentPanel.footer.calcCurrent.toFixed(2)} A`
                     : ''}
                 </td>
-                <FootIncomingCell value={inc?.cbType} bold shadow={FOOT_LEFT_LINE} />
+                <FootIncomingCell value={inc?.cbType} align="center" bold shadow={FOOT_LEFT_LINE} />
                 <FootIncomingCell value={inc?.poleVal} align="center" />
                 <FootIncomingCell value={inc?.cbText} align="right" bold />
                 <FootIncomingCell value={inc?.cbIsc} align="center" />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Settings, BookOpen, Download, FileSpreadsheet, Save } from 'lucide-react';
+import { Settings, BookOpen, Download, FileSpreadsheet, Save } from 'lucide-react';
 
 interface HeaderProps {
   onOpenConfig: () => void;
@@ -31,12 +31,12 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="w-full px-3 sm:px-4 lg:px-4 h-16 flex items-center justify-between">
         {/* Brand */}
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[#2F6F4E] rounded-xl flex items-center justify-center text-white shadow-xs">
-            <ShieldCheck className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-white shadow-xs">
+            <img src="/logo-dn.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-base sm:text-lg font-bold tracking-tight text-[#1A2332] flex items-center gap-2">
-              <span>PanelReview</span>
+              <span>Kiểm Tra Bảng Tính Điện</span>
               <span className="text-xs font-bold text-[#1B7A45] uppercase tracking-widest bg-[#E6F4EC] border border-[#A8D4B8] px-2 py-0.5 rounded-full">
                 Analyzer
               </span>
